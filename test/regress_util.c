@@ -935,7 +935,7 @@ test_evutil_rand(void *arg)
 	char buf1[32];
 	char buf2[32];
 	int counts[256];
-	int i, j, k, n=0;
+	int i, j, k;
 	struct evutil_weakrand_state seed = { 12346789U };
 
 	memset(buf2, 0, sizeof(buf2));
@@ -956,7 +956,6 @@ test_evutil_rand(void *arg)
 			memset(buf1, 0, sizeof(buf1));
 			evutil_secure_rng_get_bytes(buf1 + startpoint,
 			    endpoint-startpoint);
-			n += endpoint - startpoint;
 			for (j=0; j<32; ++j) {
 				if (j >= startpoint && j < endpoint) {
 					buf2[j] |= buf1[j];
@@ -982,8 +981,6 @@ test_evutil_rand(void *arg)
 		tt_int_op(0, <=, r);
 		tt_int_op(r, <, 9999);
 	}
-
-	/* for (i=0;i<256;++i) { printf("%3d %2d\n", i, counts[i]); } */
 end:
 	;
 }
@@ -1113,7 +1110,7 @@ test_evutil_getaddrinfo(void *arg)
 	hints.ai_family = PF_UNSPEC;
 	hints.ai_flags = EVUTIL_AI_NUMERICHOST;
 	r = evutil_getaddrinfo("www.google.com", "80", &hints, &ai);
-	tt_int_op(r, ==, EVUTIL_EAI_NONAME);
+	tt_int_op(r,==,EVUTIL_EAI_NONAME);
 	tt_ptr_op(ai, ==, NULL);
 
 	/* Try symbolic service names wit AI_NUMERICSERV */
@@ -1122,7 +1119,8 @@ test_evutil_getaddrinfo(void *arg)
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = EVUTIL_AI_NUMERICSERV;
 	r = evutil_getaddrinfo("1.2.3.4", "http", &hints, &ai);
-	tt_int_op(r,==,EVUTIL_EAI_NONAME);
+	if (r != EVUTIL_EAI_SERVICE && r != EVUTIL_EAI_NONAME)
+		tt_fail_msg("error is neither EAI_SERVICE nor EAI_NONAME\n");
 
 	/* Try symbolic service names */
 	memset(&hints, 0, sizeof(hints));
@@ -1315,7 +1313,16 @@ test_event_calloc(void *arg)
 	/* mm_calloc() should set errno = ENOMEM and return NULL
 	 * in case of potential overflow. */
 	errno = 0;
-	p = mm_calloc(EV_SIZE_MAX/2, EV_SIZE_MAX/2 + 8);
+#if defined(__clang__)
+#elif defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Walloc-size-larger-than="
+#endif
+	p = mm_calloc(EV_SIZE_MAX, EV_SIZE_MAX);
+#if defined(__clang__)
+#elif defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 	tt_assert(p == NULL);
 	tt_int_op(errno, ==, ENOMEM);
 

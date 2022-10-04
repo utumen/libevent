@@ -247,6 +247,18 @@ add_cert_for_store(X509_STORE *store, const char *name)
 }
 #endif
 
+#if defined(_WIN32)
+static char* strndup(const char* src, size_t chars)
+{
+	char* buffer = (char*) malloc(chars + 1);
+	if (buffer) {
+		strncpy(buffer, src, chars);
+		buffer[chars] = '\0';
+	}
+	return buffer;
+}
+#endif
+
 int
 main(int argc, char **argv)
 {
@@ -541,8 +553,18 @@ main(int argc, char **argv)
 
 	// For simplicity, we let DNS resolution block. Everything else should be
 	// asynchronous though.
-	evcon = evhttp_connection_base_bufferevent_new(base, NULL, bev,
-		host, port);
+	{
+		if (host[0] == '[' && strlen(host) > 2 && ipv6) {
+			// trim '[' and ']'
+			char *host_ipv6 = strndup(&host[1], strlen(&host[1]) - 1);
+			evcon = evhttp_connection_base_bufferevent_new(base, NULL, bev,
+				host_ipv6, port);
+			free(host_ipv6);
+		} else {
+			evcon = evhttp_connection_base_bufferevent_new(base, NULL, bev,
+				host, port);
+		}
+	}
 	if (evcon == NULL) {
 		fprintf(stderr, "evhttp_connection_base_bufferevent_new() failed\n");
 		goto error;

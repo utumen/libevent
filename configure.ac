@@ -272,7 +272,7 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_INLINE
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS([accept4 arc4random arc4random_buf arc4random_addrandom eventfd epoll_create1 fcntl getegid geteuid getifaddrs gettimeofday issetugid mach_absolute_time mmap nanosleep pipe pipe2 putenv sendfile setenv setrlimit sigaction signal strsignal strlcpy strsep strtok_r strtoll sysctl timerfd_create umask unsetenv usleep getrandom ])
+AC_CHECK_FUNCS([accept4 arc4random arc4random_buf arc4random_addrandom eventfd epoll_create1 epoll_pwait2 fcntl getegid geteuid getifaddrs gettimeofday issetugid mach_absolute_time mmap nanosleep pipe pipe2 putenv sendfile setenv setrlimit sigaction signal strsignal strlcpy strsep strtok_r strtoll sysctl timerfd_create umask unsetenv usleep getrandom mmap64])
 
 AS_IF([test "$bwin32" = "true"],
   AC_CHECK_FUNCS(_gmtime64_s, , [AC_CHECK_FUNCS(_gmtime64)])
@@ -280,13 +280,7 @@ AS_IF([test "$bwin32" = "true"],
 
 AM_CONDITIONAL(STRLCPY_IMPL, [test "$ac_cv_func_strlcpy" = "no"])
 
-m4_define([funcstochk],
-  [getnameinfo
-  getprotobynumber
-  getservbyname
-  inet_ntop
-  inet_pton]
-)
+m4_define([funcstochk], [getnameinfo getprotobynumber getservbyname inet_ntop inet_pton])
 
 AS_IF([test "$bwin32" = "true"],
   [AX_CHECK_DECLS_EX([funcstochk getaddrinfo],
@@ -762,23 +756,23 @@ if test "$enable_gcc_warnings" != "no" && test "$GCC" = "yes"; then
   AX_CHECK_COMPILE_FLAG([-Wwrite-strings],[CFLAGS="$CFLAGS -Wwrite-strings"],[],[-Werror])
 
   dnl Convert warnings into errors
-  if test x"$enable_gcc_warnings" = "yes"; then
+  if test "$enable_gcc_warnings" = "yes"; then
     AX_CHECK_COMPILE_FLAG([-Werror], [CFLAGS="$CFLAGS -Werror"])
   fi
 
-  dnl Disable warnings for unused paramaters
-  AX_CHECK_COMPILE_FLAG([-Wno-unused-parameter], [CFLAGS="$CFLAGS -Wno-unused-parameter"],[],[-Werror])
-  AX_CHECK_COMPILE_FLAG([-Wno-void-pointer-to-enum-cast], [CFLAGS="$CFLAGS -Wno-void-pointer-to-enum-cast"],[],[-Werror])
+  dnl Disable warnings for unused parameters
+  AX_CHECK_COMPILE_FLAG([-Wunused-parameter], [CFLAGS="$CFLAGS -Wno-unused-parameter"],[],[-Werror])
+  AX_CHECK_COMPILE_FLAG([-Wvoid-pointer-to-enum-cast], [CFLAGS="$CFLAGS -Wno-void-pointer-to-enum-cast"],[],[-Werror])
 
   AC_COMPILE_IFELSE([AC_LANG_PROGRAM([], [
   #if !defined(__clang__)
   #error
   #endif])], have_clang=yes, have_clang=no)
 
-  if test "$have_clang" = "yes"; then
-    dnl Disable unused-function warnings. These trigger for minheap-internal.h.
-    AX_CHECK_COMPILE_FLAG([-Wno-unused-function], [CFLAGS="$CFLAGS -Wno-unused-function"],[],[-Werror])
+   dnl Disable unused-function warnings. These trigger for minheap-internal.h.
+   AX_CHECK_COMPILE_FLAG([-Wno-unused-function], [CFLAGS="$CFLAGS -Wno-unused-function"],[],[-Werror])
 
+  if test "$have_clang" = "yes"; then
     case "$host_os" in
       darwin*)
         dnl Clang on macOS emits warnings for each directory specified which
@@ -862,6 +856,8 @@ fi
 AC_SUBST([LIBEVENT_GC_SECTIONS])
 
 AM_CONDITIONAL([INSTALL_LIBEVENT], [test "$enable_libevent_install" = "yes"])
+
+AC_C_BIGENDIAN([CFLAGS="$CFLAGS -DBIG_ENDIAN"], [CFLAGS="$CFLAGS -DLITTLE_ENDIAN"])
 
 dnl Doxygen support
 DX_HTML_FEATURE(ON)

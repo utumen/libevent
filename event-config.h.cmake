@@ -99,6 +99,9 @@
 /* Define to 1 if you have the `epoll_create1' function. */
 #cmakedefine EVENT__HAVE_EPOLL_CREATE1 1
 
+/* Define to 1 if you have the `epoll_pwait2' function. */
+#cmakedefine EVENT__HAVE_EPOLL_PWAIT2 1
+
 /* Define to 1 if you have the `epoll_ctl' function. */
 #cmakedefine EVENT__HAVE_EPOLL_CTL 1
 
@@ -189,6 +192,9 @@
 
 /* Define to 1 if you have the `mmap' function. */
 #cmakedefine EVENT__HAVE_MMAP 1
+
+/* Define to 1 if you have the `mmap64' function. */
+#cmakedefine EVENT__HAVE_MMAP64 1
 
 /* Define to 1 if you have the `nanosleep' function. */
 #cmakedefine EVENT__HAVE_NANOSLEEP 1
@@ -484,6 +490,9 @@
 
 /* The size of 'void *', as computer by sizeof */
 #define EVENT__SIZEOF_VOID_P @EVENT__SIZEOF_VOID_P@
+
+/* The size of 'time_t', as computer by sizeof */
+#define EVENT__SIZEOF_TIME_T @EVENT__SIZEOF_TIME_T@
 
 /* Define to `__inline__' or `__inline' if that's what the C compiler
    calls it, or to nothing if 'inline' is not supported under any name.  */

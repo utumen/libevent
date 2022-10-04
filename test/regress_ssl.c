@@ -93,6 +93,7 @@ static const char KEY[] =
     "-----END RSA PRIVATE KEY-----\n";
 
 static int disable_tls_11_and_12 = 0;
+static int disable_tls_13 = 0;
 static int test_is_done;
 static int n_connected;
 static int got_close;
@@ -223,7 +224,16 @@ eventcb(struct bufferevent *bev, short what, void *ctx)
 		++n_connected;
 		ssl = bufferevent_ssl_get_ssl(bev);
 		tt_assert(ssl);
+#if OPENSSL_VERSION_NUMBER >= 0x30000000
+		/* SSL_get1_peer_certificate() means we want
+		 * to increase the reference count on the cert
+		 * and so we will need to free it ourselves later
+		 * when we're done with it. The non-reference count
+		 * increasing version is not available in OpenSSL 1.1.1. */
+		peer_cert = SSL_get1_peer_certificate(ssl);
+#else
 		peer_cert = SSL_get_peer_certificate(ssl);
+#endif
 		if (type & REGRESS_OPENSSL_SERVER) {
 			tt_assert(peer_cert == NULL);
 		} else {
@@ -323,6 +333,12 @@ regress_bufferevent_openssl(void *arg)
 	type = (enum regress_openssl_type)data->setup_data;
 
 	if (type & REGRESS_OPENSSL_RENEGOTIATE) {
+		/*
+		 * Disable TLS 1.3, so we negotiate something older to test
+		 * renegotiation - renegotiation is not supported by the
+		 * protocol any more.
+		 */
+		disable_tls_13 = 1;
 		if (OPENSSL_VERSION_NUMBER >= 0x10001000 &&
 		    OPENSSL_VERSION_NUMBER <  0x1000104f) {
 			/* 1.0.1 up to 1.0.1c has a bug where TLS1.1 and 1.2
